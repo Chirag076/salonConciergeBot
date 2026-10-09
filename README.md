@@ -2,13 +2,17 @@
 
 An AI concierge on **Telegram** that chats with customers in plain language, answers questions about a salon's services, and **books, reschedules, and cancels appointments** through conversation. It's an agentic LLM app — it doesn't just reply, it takes real actions against a database.
 
+## Demo
+
+**[Watch the full demo video →](https://drive.google.com/file/d/14jerL5v7q92tbmNTvLsdB3axggYMKE9h/view?usp=sharing)**
+
+A complete walkthrough — booking an appointment, rescheduling it, and cancelling — all through natural conversation on Telegram.
+
 ## Try it
 
-Chat with the bot on Telegram: **[@salonConciergeBot](https://t.me/salonConciergeBot)**
+This bot runs **locally** and connects to Telegram as **[@salonConciergeBot](https://t.me/salonConciergeBot)**.
 
-Say something like *"I'd like to book a women's haircut"* and it'll take it from there.
-
-> Note: this is a demo bot running on-demand — if it doesn't reply, it's between runs.
+To see it in action, clone and run it yourself (setup below) — or request a **live demo**, and I'll spin it up and walk through the full booking flow (booking, rescheduling, cancelling) on request.
 
 ## What it does
 
@@ -84,3 +88,11 @@ Then message your bot on Telegram. Use `/bookings` to see saved appointments.
 - Swap SQLite for Postgres for production
 - Deploy always-on so it runs 24/7
 - Port to WhatsApp for real-world customer reach
+
+## Contact
+
+Built by **Chirag Chhabra** — happy to walk through a live demo on request.
+
+- Email: chiragchhabrahmo@gmail.com
+- Portfolio: https://chiragchhabra.vercel.app/
+- GitHub: https://github.com/Chirag076
