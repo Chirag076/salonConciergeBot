@@ -1,0 +1,10 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Secrets — your API keys live here, NEVER commit this
+.env
+
+# Local booking database
+bookings.db
