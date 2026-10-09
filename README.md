@@ -2,6 +2,14 @@
 
 An AI concierge on **Telegram** that chats with customers in plain language, answers questions about a salon's services, and **books, reschedules, and cancels appointments** through conversation. It's an agentic LLM app — it doesn't just reply, it takes real actions against a database.
 
+## Try it
+
+Chat with the bot on Telegram: **[@salonConciergeBot](https://t.me/salonConciergeBot)**
+
+Say something like *"I'd like to book a women's haircut"* and it'll take it from there.
+
+> Note: this is a demo bot running on-demand — if it doesn't reply, it's between runs.
+
 ## What it does
 
 - Natural-language chat on Telegram — no forms, no button menus
@@ -41,8 +49,8 @@ A **system prompt** defines the concierge's persona and the rules (only real ser
 ## Run it
 
 ```bash
-git clone https://github.com/Chirag076/salon-concierge.git
-cd salon-concierge
+git clone https://github.com/Chirag076/salonConciergeBot.git
+cd salonConciergeBot
 python -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
