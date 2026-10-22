@@ -8,3 +8,9 @@ __pycache__/
 
 # Local booking database
 bookings.db
+
+# Test cache
+.pytest_cache/
+
+# Backup of pre-Week-1 files (delete once pushed)
+_week1_backup/
