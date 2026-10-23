@@ -25,6 +25,7 @@ import salon_bot    # noqa: E402
 PAUSE = int(os.getenv("EVAL_PAUSE", "12"))   # seconds between calls, to stay under free-tier rate limits
 
 calls = []          # names of tools the agent called during the current scenario
+last = {"reply": ""}   # the agent's last reply, printed when a scenario fails
 
 
 def logged(fn):
@@ -67,6 +68,7 @@ def ask(message):
             if not salon_bot.is_temporary(e) or i == len(waits) - 1:
                 raise
             print(f"    (Gemini busy: {e.code}, retrying in {waits[i + 1]}s)")
+    last["reply"] = reply
     time.sleep(PAUSE)
     return reply
 
@@ -79,6 +81,9 @@ def check(name, ok):
     total += 1
     passed += bool(ok)
     print(f"  [{'PASS' if ok else 'FAIL'}] {name}")
+    if not ok:
+        print(f"      tools called: {calls or 'none'}")
+        print(f"      agent said: {last['reply'][:300]!r}")
 
 
 def scenario(name, fn):
@@ -90,14 +95,30 @@ def scenario(name, fn):
 
 print("Running eval...\n")
 
+# Dates are always written out ("Saturday 31 October") and always in the future,
+# so the result doesn't depend on which day or hour the eval runs.
+def open_day(days_ahead):
+    d = booking.today() + timedelta(days=days_ahead)
+    while d.weekday() not in booking.OPEN_DAYS:
+        d += timedelta(days=1)
+    return d
+
+
+def say(d):
+    return d.strftime("%A %d %B").replace(" 0", " ")   # e.g. "Saturday 31 October"
+
+
+D2, D3, D4, D5, D6 = (open_day(n) for n in (2, 3, 4, 5, 6))
+next_monday = booking.today() + timedelta(days=(7 - booking.today().weekday()) or 7)
+
 # --- BOOKING: each should add exactly one row for the right customer ---
 for msg, name in [
-    ("Book a women's haircut for Riya on Saturday at 3 PM", "Riya"),
-    ("I'd like a hair spa for Aman this Sunday at 5 PM", "Aman"),
-    ("Please book a facial for Neha on Friday at 11 AM", "Neha"),
-    ("Bridal makeup for Priya on Saturday at noon", "Priya"),
-    ("Book a men's haircut for Karan, Tuesday 6 PM", "Karan"),
-    ("Manicure for Sana on Wednesday at 2 PM", "Sana"),
+    (f"Book a women's haircut for Riya on {say(D2)} at 3 PM", "Riya"),
+    (f"I'd like a hair spa for Aman on {say(D3)} at 5 PM", "Aman"),
+    (f"Please book a facial for Neha on {say(D4)} at 11 AM", "Neha"),
+    (f"Bridal makeup for Priya on {say(D2)} at noon", "Priya"),
+    (f"Book a men's haircut for Karan, {say(D5)} 6 PM", "Karan"),
+    (f"Manicure for Sana on {say(D6)} at 2 PM", "Sana"),
 ]:
     def books(msg=msg, name=name):
         before = len(rows())
@@ -108,15 +129,15 @@ for msg, name in [
 
 
 def reschedules():
-    ask("Book a pedicure for Meera on Thursday at 1 PM")
+    ask(f"Book a pedicure for Meera on {say(D3)} at 1 PM")
     bid = latest_id()
-    ask(f"Reschedule booking {bid} to Sunday at 4 PM")
+    ask(f"Reschedule booking {bid} to {say(D4)} at 4 PM")
     row = [r for r in rows() if r[0] == bid]
     return bool(row) and row[0][4] == "16:00"
 
 
 def cancels():
-    ask("Book a hair color for Tara on Saturday at 10 AM")
+    ask(f"Book a hair color for Tara on {say(D2)} at 10 AM")
     bid = latest_id()
     ask(f"Cancel booking {bid}")
     return all(r[0] != bid for r in rows())
@@ -134,18 +155,18 @@ def no_new_row(msg):
 
 
 scenario("declines tattoo (not a service)", lambda: no_new_row("Do you do tattoos?"))
-scenario("refuses off-menu service", lambda: no_new_row("Book a full body massage for Rohit on Sunday 3 PM"))
+scenario("refuses off-menu service", lambda: no_new_row(f"Book a full body massage for Rohit on {say(D3)} at 3 PM"))
+
+
 def refuses_taken_slot():
     # Set up the clash directly, so this scenario doesn't depend on any earlier one.
-    day = booking.today() + timedelta(days=1)
-    while day.weekday() not in booking.OPEN_DAYS:
-        day += timedelta(days=1)
+    day = open_day(7)
     booking.book_appointment("Setup customer", "Facial", day.isoformat(), "15:00")
-    return no_new_row(f"Book a manicure for Ishaan on {day.isoformat()} at 3 PM")
+    return no_new_row(f"Book a manicure for Ishaan on {say(day)} at 3 PM")
 
 
 scenario("refuses a slot that is already taken", refuses_taken_slot)
-scenario("refuses Monday (salon closed)", lambda: no_new_row("Book a facial for Dev on Monday at 11 AM"))
+scenario("refuses Monday (salon closed)", lambda: no_new_row(f"Book a facial for Dev on {say(next_monday)} at 11 AM"))
 
 
 def price_from_tool():
