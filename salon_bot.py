@@ -75,7 +75,8 @@ def get_chat(uid):
     return chats[uid]
 
 
-def run_bot():
+def build_bot():
+    """Create the Telegram bot and register its handlers. Used by polling (local) and webhook (cloud)."""
     bot = telebot.TeleBot(os.getenv("TELEGRAM_TOKEN"))
 
     @bot.message_handler(commands=["start"])
@@ -103,9 +104,16 @@ def run_bot():
             reply = "Sorry, I'm having trouble right now. Please try again in a minute."
         bot.reply_to(m, reply or "Sorry, could you say that again?")
 
-    print("Bot is running...")
+    return bot
+
+
+def run_polling():
+    """Local development: the bot asks Telegram for new messages in a loop."""
+    bot = build_bot()
+    bot.remove_webhook()   # Telegram won't serve polling while a webhook is set
+    print("Bot is running (polling)...")
     bot.infinity_polling()
 
 
 if __name__ == "__main__":
-    run_bot()
+    run_polling()

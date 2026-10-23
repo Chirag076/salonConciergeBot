@@ -10,7 +10,9 @@ The design goal is an agent you can trust with a real business: **every price, s
 
 **[Watch the full demo video →](https://drive.google.com/file/d/14jerL5v7q92tbmNTvLsdB3axggYMKE9h/view?usp=sharing)**
 
-Booking an appointment, rescheduling it and cancelling it, all through natural conversation on Telegram. Bot: [@salonConciergeBot](https://t.me/salonConciergeBot)
+Booking an appointment, rescheduling it and cancelling it, all through natural conversation on Telegram.
+
+**Try it live:** message [@salonConciergeBot](https://t.me/salonConciergeBot). It runs on Render's free tier, which sleeps when idle, so the first reply can take up to a minute while it wakes up. After that it's instant. The demo database resets when the server restarts.
 
 ## What it does
 
@@ -52,7 +54,7 @@ The agent chooses between five tools on its own. They live in `booking.py`, whic
 
 Two layers, both run in [GitHub Actions](.github/workflows/ci.yml) on every push.
 
-**1. Unit tests** (`tests/`, 21 tests, no API key needed): booking rules, double-booking, 12-way concurrency, opening hours, reschedule, cancel, and retrying temporary Gemini outages.
+**1. Unit tests** (`tests/`, 26 tests, no API key needed): booking rules, double-booking, 12-way concurrency, opening hours, reschedule, cancel, retrying temporary Gemini outages, and webhook security.
 
 ```bash
 pip install -r requirements-dev.txt
@@ -90,6 +92,16 @@ python salon_bot.py
 
 Then message your bot on Telegram. Use `/bookings` to see saved appointments.
 
+### Deploy (free, webhook mode)
+
+Locally the bot **polls** Telegram for new messages. A free host that sleeps can't poll, so in the cloud the bot uses a **webhook**: Telegram pushes each message to `POST /webhook`, which also wakes the server. `webhook.py` checks Telegram's secret header, so nobody else can post fake messages, and hands each update to a worker thread so Telegram gets a fast reply.
+
+1. On [Render](https://render.com), choose **New > Blueprint** and pick this repo. It reads `render.yaml`.
+2. Paste `GEMINI_API_KEY` and `TELEGRAM_TOKEN` when asked. `WEBHOOK_SECRET` is generated for you.
+3. On startup the app registers its own webhook URL with Telegram.
+
+Running `python salon_bot.py` locally removes the webhook so polling works, so redeploy (or restart the Render service) afterwards to switch Telegram back to the cloud.
+
 ### With Docker
 
 ```bash
@@ -106,6 +118,7 @@ Bookings are stored on the `salon-data` volume, so they survive restarts.
 - **pyTelegramBotAPI**: Telegram Bot API
 - **SQLite**: bookings, with a unique index as the double-booking guard
 - **pytest** and **GitHub Actions**: unit tests and agent evals on every push
+- **Flask** and **gunicorn**: webhook server on Render
 - **Docker**
 
 ## What I learned

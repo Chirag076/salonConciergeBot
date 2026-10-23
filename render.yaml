@@ -1,0 +1,18 @@
+# Render Blueprint: New > Blueprint > pick this repo. Free web service in webhook mode.
+services:
+  - type: web
+    name: salon-concierge
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 1 --threads 4 -b 0.0.0.0:$PORT webhook:app
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: GEMINI_API_KEY
+        sync: false          # you paste it in the Render dashboard
+      - key: TELEGRAM_TOKEN
+        sync: false
+      - key: WEBHOOK_SECRET
+        generateValue: true  # Render makes a random one

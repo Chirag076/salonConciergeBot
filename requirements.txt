@@ -2,3 +2,5 @@ pyTelegramBotAPI
 google-genai
 python-dotenv
 tzdata
+flask
+gunicorn
