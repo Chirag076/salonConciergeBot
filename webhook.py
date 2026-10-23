@@ -12,7 +12,9 @@ One worker only: conversations are kept in memory and SQLite likes one writer.
 """
 import hashlib
 import hmac
+import logging
 import os
+import threading
 
 import telebot
 from flask import Flask, abort, request
@@ -20,7 +22,10 @@ from flask import Flask, abort, request
 import salon_bot
 
 app = Flask(__name__)
-bot = salon_bot.build_bot()          # threaded: replies are handled off the request thread
+# threaded=False: we start our own thread per update below. telebot's built-in pool
+# hides errors at DEBUG level and a crashed worker stops for good, which made the bot go silent.
+bot = salon_bot.build_bot(threaded=False)
+log = logging.getLogger("salon.webhook")
 
 # Telegram only allows A-Z, a-z, 0-9, _ and - in the secret, so we send a hex hash of
 # whatever secret is configured (Render's generated values can contain + / =).
@@ -41,16 +46,25 @@ def webhook():
     if not SECRET or not hmac.compare_digest(sent, SECRET):
         abort(403)
     update = telebot.types.Update.de_json(request.get_data(as_text=True))
-    bot.process_new_updates([update])   # queued to a worker thread, so we answer Telegram fast
+    log.info("update %s received", update.update_id)
+    # Reply in the background so Telegram gets its 200 immediately (the AI can take seconds).
+    threading.Thread(target=process, args=(update,), daemon=True).start()
     return "", 200
+
+
+def process(update):
+    try:
+        bot.process_new_updates([update])
+    except Exception:
+        log.exception("failed to process update %s", update.update_id)
 
 
 def register_webhook():
     if not (BASE_URL and SECRET):
-        print("WEBHOOK_BASE_URL/RENDER_EXTERNAL_URL or WEBHOOK_SECRET missing, webhook not registered")
+        log.warning("WEBHOOK_BASE_URL/RENDER_EXTERNAL_URL or WEBHOOK_SECRET missing, webhook not registered")
         return
     bot.set_webhook(url=f"{BASE_URL.rstrip('/')}/webhook", secret_token=SECRET)
-    print(f"Webhook registered at {BASE_URL.rstrip('/')}/webhook")
+    log.info("Webhook registered at %s/webhook", BASE_URL.rstrip('/'))
 
 
 if os.getenv("REGISTER_WEBHOOK", "1") == "1":

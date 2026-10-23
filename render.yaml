@@ -10,6 +10,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.7
+      - key: PYTHONUNBUFFERED      # show logs immediately
+        value: "1"
       - key: GEMINI_API_KEY
         sync: false          # you paste it in the Render dashboard
       - key: TELEGRAM_TOKEN

@@ -1,5 +1,7 @@
+import logging
 import os
 import time
+
 import telebot
 from dotenv import load_dotenv
 from google import genai
@@ -9,6 +11,10 @@ from google.genai import types
 import booking
 
 load_dotenv()
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+log = logging.getLogger("salon")
+
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 CHAT_MODEL = os.getenv("CHAT_MODEL", "gemini-3.5-flash-lite")
@@ -75,9 +81,17 @@ def get_chat(uid):
     return chats[uid]
 
 
-def build_bot():
+class LogExceptions(telebot.ExceptionHandler):
+    """Make handler errors visible instead of silently swallowed."""
+    def handle(self, exception):
+        log.error("handler crashed: %s: %s", type(exception).__name__, exception, exc_info=exception)
+        return True    # handled: keep the bot running
+
+
+def build_bot(threaded=True):
     """Create the Telegram bot and register its handlers. Used by polling (local) and webhook (cloud)."""
-    bot = telebot.TeleBot(os.getenv("TELEGRAM_TOKEN"))
+    bot = telebot.TeleBot(os.getenv("TELEGRAM_TOKEN"), threaded=threaded,
+                          exception_handler=LogExceptions())
 
     @bot.message_handler(commands=["start"])
     def start(m):
@@ -97,12 +111,18 @@ def build_bot():
 
     @bot.message_handler(func=lambda m: True)
     def handle(m):
+        started = time.time()
+        log.info("message from user %s: %r", m.from_user.id, (m.text or "")[:200])
         try:
-            reply = send_with_retry(get_chat(m.from_user.id), m.text)
+            reply = send_with_retry(get_chat(m.from_user.id), m.text or "")
         except Exception as e:
-            print(f"[error] {type(e).__name__}: {e}")
+            log.exception("agent failed: %s", e)
             reply = "Sorry, I'm having trouble right now. Please try again in a minute."
-        bot.reply_to(m, reply or "Sorry, could you say that again?")
+        try:
+            bot.reply_to(m, reply or "Sorry, could you say that again?")
+            log.info("replied to user %s in %.1fs", m.from_user.id, time.time() - started)
+        except Exception as e:
+            log.exception("could not send reply to Telegram: %s", e)
 
     return bot
 
@@ -111,7 +131,7 @@ def run_polling():
     """Local development: the bot asks Telegram for new messages in a loop."""
     bot = build_bot()
     bot.remove_webhook()   # Telegram won't serve polling while a webhook is set
-    print("Bot is running (polling)...")
+    log.info("Bot is running (polling)...")
     bot.infinity_polling()
 
 

@@ -54,7 +54,7 @@ The agent chooses between five tools on its own. They live in `booking.py`, whic
 
 Two layers, both run in [GitHub Actions](.github/workflows/ci.yml) on every push.
 
-**1. Unit tests** (`tests/`, 26 tests, no API key needed): booking rules, double-booking, 12-way concurrency, opening hours, reschedule, cancel, retrying temporary Gemini outages, and webhook security.
+**1. Unit tests** (`tests/`, 27 tests, no API key needed): booking rules, double-booking, 12-way concurrency, opening hours, reschedule, cancel, retrying temporary Gemini outages, webhook security, and surviving a crashed reply.
 
 ```bash
 pip install -r requirements-dev.txt
